@@ -1,8 +1,45 @@
 # pgdb
-// TODO(user): Add simple overview of use/purpose
+A Postgres Database Kubernetes Operator: you bring the cluster, we'll manage the database.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+`pgdb` will reconcile k8s Database resources with the specified Postgres clusters.  You'll need a cluster setup with 
+a secret containing connection credentials, such as `pgdb-example-secret` in the namespace `dev-pg-16-0`.  The following
+will create a secret named `pgdb-output` in the current namespace with the connection credentials for the data store.
+
+```yaml
+apiVersion: pgdb.storage.meschbach.com/v1alpha1
+kind: Database
+metadata:
+  labels:
+    app.kubernetes.io/name: database
+    app.kubernetes.io/instance: database-sample
+    app.kubernetes.io/part-of: pgdb
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: pgdb
+  name: database-sample
+spec:
+  clusterNamespace: "dev-pg-16-0"
+  clusterSecret: "pgdb-example-secret"
+  databaseSecret: "pgdb-output"
+  controller: "test"
+```
+
+The resulting secret will look like:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pgdb-output
+  namespace: default
+data:
+  database: ZGVmYXVsdC1kYXRhYmFzZS1zYW1wbGU=
+  host: ZGV2LXBnLTE2LTAuZGV2LXBnLTE2LTAuc3ZjLndvcmtzaG9wLms4cw==
+  password: >-
+    PSFsZ21qaXl3ZG1ta3hiamhJSEVZRlVXS1haWTAwaHJ5QklCQUFHV0lELTExOTFUU0hUSEdFVUVPPUlERUJWSg==
+  port: NTQzMg==
+  user: ZGVmYXVsdC1kYXRhYmFzZS1zYW1wbGU=
+type: Opaque
+```
 
 ## Getting Started
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
@@ -78,7 +115,7 @@ More information can be found via the [Kubebuilder Documentation](https://book.k
 
 ## License
 
-Copyright 2023.
+Copyright 2023 Mark Eschbach.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
