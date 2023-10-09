@@ -1,0 +1,5 @@
+## Append samples of your project ##
+resources:
+- pgdb_v1alpha1_cluster.yaml
+- pgdb_v1alpha1_database.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
