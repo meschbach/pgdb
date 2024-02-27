@@ -102,6 +102,11 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	- $(CONTAINER_TOOL) buildx rm project-v3-builder
 	rm Dockerfile.cross
 
+.PHONY: nerdctl-cross
+nerdctl-cross:
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	nerdctl build --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+
 ##@ Deployment
 
 ifndef ignore-not-found
