@@ -113,6 +113,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zk
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/meschbach/pgstate v0.0.0-20231006225457-346f0d7842fb h1:GwNRMyzqjBw/c5I71junhz7AzWy21HUWm4iqBI9PBIw=
 github.com/meschbach/pgstate v0.0.0-20231006225457-346f0d7842fb/go.mod h1:KO3QVpzitDNBO626G9GVrGVeCUZmbpVafMETrdlytQI=
+github.com/meschbach/pgstate v0.0.0-20240227230439-cb689d8b18d5 h1:yZKUU0vTpRLkZ3mL1kyR5ghritcJD2nrtx8ZD+/m0n8=
+github.com/meschbach/pgstate v0.0.0-20240227230439-cb689d8b18d5/go.mod h1:F7LaiBT31x7Vz3NHHE4kTel8m2BMYpOCUJBsVw4BmWo=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=

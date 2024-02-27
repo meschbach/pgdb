@@ -45,6 +45,10 @@ type DatabaseSpec struct {
 	//Controller allows multiple controllers to run in a cluster simultaneously.  If not set then the default controller
 	//will be used
 	Controller string `json:"controller,omitempty"`
+	//AllowPasswordSpecials will allow for special characters in passwords, such as ()[]{}*$! etc
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
+	AllowPasswordSpecials bool `json:"allowPasswordSpecials"`
 }
 
 func (d DatabaseSpec) MatchesController(controllerName string) bool {

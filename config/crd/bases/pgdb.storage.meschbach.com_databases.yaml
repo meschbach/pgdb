@@ -14,7 +14,11 @@ spec:
     singular: database
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Database is the Schema for the databases API
@@ -34,6 +38,11 @@ spec:
           spec:
             description: DatabaseSpec defines the desired state of Database
             properties:
+              allowPasswordSpecials:
+                default: true
+                description: AllowPasswordSpecials will allow for special characters
+                  in passwords, such as ()[]{}*$! etc
+                type: boolean
               clusterNamespace:
                 description: ClusterNamespace is the namespace of the cluster secret
                 type: string

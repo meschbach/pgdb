@@ -164,7 +164,10 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		reconcilerLog.Info("Output secret does not exist, generating")
 		databaseName = req.Namespace + "-" + req.Name
-		databaseRolePassword = pgstate.GeneratePassword()
+		passwordConfig := pgstate.GenPasswordConfig{
+			AllowSpecial: db.Spec.AllowPasswordSpecials,
+		}
+		databaseRolePassword = pgstate.GeneratePasswordWithConfig(passwordConfig)
 
 		outputSecret.Namespace = db.Namespace
 		outputSecret.Name = db.Spec.DatabaseSecret
