@@ -9,7 +9,7 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/meschbach/pgstate v0.0.2
 	github.com/onsi/ginkgo/v2 v2.17.3
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0
 	k8s.io/client-go v0.28.0
