@@ -5,7 +5,7 @@ module github.com/meschbach/pgdb
 go 1.21.1
 
 require (
-	github.com/go-logr/logr v1.2.4
+	github.com/go-logr/logr v1.4.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/meschbach/pgstate v0.0.2
 	github.com/onsi/ginkgo/v2 v2.11.0
