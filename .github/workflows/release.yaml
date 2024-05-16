@@ -47,14 +47,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Multiplatform build file
-        run: |
-          make docker-buildx-edit
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           platforms: "linux/amd64,linux/arm64"
-          file: Dockerfile.cross
+          file: Dockerfile
           push: true
           tags: |
             meschbach/pgdb:latest
