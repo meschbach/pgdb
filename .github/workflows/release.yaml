@@ -58,7 +58,7 @@ jobs:
           push: true
           tags: |
             meschbach/pgdb:latest
-            meschbach/pgdb:${{ env.BRANCH }}
+            meschbach/pgdb:main
             meschbach/pgdb:${{ github.sha }}
             meschbach/pgdb:${{ steps.version.outputs.tag }}
       - name: Github Release
