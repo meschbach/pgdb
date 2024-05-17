@@ -95,6 +95,11 @@ jobs:
           version: v0.23.0
           # Earliest version of k8s
           image: kindest/node:v1.27.13
-      - name: "Install Operator"
+      - name: "Install Operator && Postgres"
         run: |
           IMG=${{ steps.meta.outputs.tags }} make install deploy
+          kubectl create namespace e2e-pg16
+          kubectl apply --namespace e2e-pg16 -f e2e/pg16.yaml
+      - name: "Run e2e tests"
+        run: |
+          cd e2e && ./run-tests.sh
