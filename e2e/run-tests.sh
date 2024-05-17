@@ -1,6 +1,9 @@
 #!/bin/bash
 
 set -xe
+echo
+echo "Applying test resources."
+echo
 kubectl apply -f e2e-pg16-gen-db-same-namespace.yaml
 
 echo
@@ -18,4 +21,8 @@ if [ "$db_name" = "postgres" ]; then
     echo "New database was not created."
 fi
 
+# TODO: need to trap signals to cleanup locally in bad test cases.
+echo
+echo "Cleanup"
+echo
 kubectl delete -f e2e-pg16-gen-db-same-namespace.yaml
