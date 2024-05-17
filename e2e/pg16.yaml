@@ -1,0 +1,52 @@
+# This is intentionally a poor man's quick Postgres.  An example how not to run a durable postgres instance.  This is
+# for fast testing.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-pg16
+  labels:
+    app: e2e-pg16
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-pg16
+  template:
+    metadata:
+      labels:
+        app: e2e-pg16
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16.3
+        ports:
+        - containerPort: 5432
+        env:
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: e2e-pg16-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: e2e-pg16-secret
+data:
+  password: MDl1azZvYWprTklFWFZ1cmZoaGd1bmhxdnZjZGdyZHBuaW0wMDFMV1hQS0dOUUFJWFVINzFSR0xtbnp1ZmxQTg==
+  # TODO: Test without the following fields to ensure graceful failure reporting
+  host: cGcxNi5lMmUtcGcxNi5zdmMuY2x1c3Rlci5sb2NhbA==
+  port: NTQzMg==
+  user: cG9zdGdyZXM=
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg16
+spec:
+  ports:
+  - port: 5432
+    protocol: TCP
+  selector:
+    app: e2e-pg16
+  clusterIP: "None"
