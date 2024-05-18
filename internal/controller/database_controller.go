@@ -104,23 +104,7 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else {
 		reconcilerLog.Info("Deleting")
-		// The object is being deleted
-		if controllerutil.ContainsFinalizer(db, finalizerName) {
-			reconcilerLog.Info("Finalizing")
-			// our finalizer is present, so lets handle any external dependency
-			if err := r.deleteExternalResources(ctx, reconcilerLog, db); err != nil {
-				reconcilerLog.Error(err, "failed to cleanup resources.")
-				// if fail to delete the external dependency here, return with error
-				// so that it can be retried
-				return ctrl.Result{}, err
-			}
 
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(db, finalizerName)
-			if err := r.Update(ctx, db); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
 		//Do we have a secret?
 		if db.Status.DatabaseSecretName != nil {
 			secret := &v1.Secret{}
@@ -138,6 +122,24 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 					Requeue:      true,
 					RequeueAfter: 10 * time.Second,
 				}, err
+			}
+		}
+
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(db, finalizerName) {
+			reconcilerLog.Info("Finalizing")
+			// our finalizer is present, so lets handle any external dependency
+			if err := r.deleteExternalResources(ctx, reconcilerLog, db); err != nil {
+				reconcilerLog.Error(err, "failed to cleanup resources.")
+				// if fail to delete the external dependency here, return with error
+				// so that it can be retried
+				return ctrl.Result{}, err
+			}
+
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(db, finalizerName)
+			if err := r.Update(ctx, db); err != nil {
+				return ctrl.Result{}, err
 			}
 		}
 
