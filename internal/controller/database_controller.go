@@ -42,6 +42,11 @@ const (
 	finalizer = "pgdb.storage.meschbach.com/finalizer"
 )
 
+var trueVar = true
+var yes = &trueVar
+var falseVar = false
+var no = &falseVar
+
 // DatabaseReconciler reconciles a Database object
 type DatabaseReconciler struct {
 	client.Client
@@ -77,6 +82,7 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 	}
+	db.Status.Ready = false
 
 	if !db.Spec.MatchesController(r.ControllerName) {
 		return ctrl.Result{}, nil
@@ -143,18 +149,31 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	clusterConnection, err := connectionConfigFromSecret(secret)
 	if err != nil {
-		return ctrl.Result{}, errors2.Join(errors2.New("failed to read cluster connection"), err)
+		resultingError := errors2.Join(errors2.New("failed to read cluster connection"), err)
+		reconcilerLog.Error(resultingError, "Could not make sense of cluster configuration")
+		db.Status.ClusterSecretValid = no
+		if err := r.Status().Update(ctx, db); err != nil {
+			reconcilerLog.Error(err, "unable to update Database status")
+		}
+		return ctrl.Result{}, resultingError
 	}
+	db.Status.ClusterSecretValid = yes
 
 	var databaseName, databaseRolePassword string
 	outputSecret := &v1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: db.Spec.DatabaseSecret}, outputSecret); err == nil {
 		reconcilerLog.Info("Output secret exists, pulling expected configuration")
+		db.Status.DatabaseSecretName = &db.Spec.DatabaseSecret
+
 		var dbErr, passwordErr error
 		databaseName, dbErr = internalizeSecretElement(outputSecret, "database")
 		databaseRolePassword, passwordErr = internalizeSecretElement(outputSecret, "password")
 		joined := errors2.Join(passwordErr, dbErr)
 		if joined != nil {
+			if err := r.Status().Update(ctx, db); err != nil {
+				reconcilerLog.Error(err, "unable to update Database status")
+			}
+			//todo: perhaps it is better to treat this as a destroy then recreate
 			reconcilerLog.Error(joined, "failed to extract user, database, and password from existing secret.")
 			return ctrl.Result{}, joined
 		}
@@ -187,10 +206,25 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 			return ctrl.Result{}, err
 		}
+		db.Status.DatabaseSecretName = &outputSecret.Name
 	}
+	db.Status.DatabaseName = databaseName
 
 	if err := pgstate.EnsureDatabase(ctx, clusterConnection, databaseName, databaseRolePassword); err != nil {
-		return ctrl.Result{}, err
+		if err := r.Status().Update(ctx, db); err != nil {
+			reconcilerLog.Error(err, "unable to update Database status")
+		}
+
+		reconcilerLog.Error(err, "failed to ensure database %s was created with role.  Retrying after delay", databaseName)
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: 30 * time.Second,
+		}, err
+	}
+	db.Status.Connected = yes
+	db.Status.Ready = true
+	if err := r.Status().Update(ctx, db); err != nil {
+		reconcilerLog.Error(err, "unable to update Database status")
 	}
 
 	return ctrl.Result{}, nil

@@ -64,6 +64,16 @@ type DatabaseStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	DatabaseName string        `json:"database-name,omitempty"`
 	State        DatabaseState `json:"state"`
+	//ClusterSecretValid is true when the cluster secret has a proper structure for connection, otherwise false.
+	//Missing or nil indicates this was not resolved.
+	ClusterSecretValid *bool `json:"secret-valid,omitempty"`
+	//DatabaseSecretName is the name of the created database secret
+	DatabaseSecretName *string `json:"database-secret,omitempty"`
+	//Connected indicates the operator was able to connect to the target cluster. Missing or nil means a connection
+	// was not attempted
+	Connected *bool `json:"connected,omitempty"`
+	//Ready indicates teh database has been created and is ready for use
+	Ready bool `json:"ready,omitempty"`
 }
 
 //+kubebuilder:object:root=true
