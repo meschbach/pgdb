@@ -25,6 +25,7 @@ import (
 	"github.com/meschbach/pgstate"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strconv"
@@ -190,6 +191,15 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		outputSecret.Namespace = db.Namespace
 		outputSecret.Name = db.Spec.DatabaseSecret
+		outputSecret.ObjectMeta.SetOwnerReferences([]v12.OwnerReference{
+			{
+				APIVersion:         db.APIVersion,
+				Kind:               db.Kind,
+				Name:               db.Name,
+				UID:                db.UID,
+				BlockOwnerDeletion: yes,
+			},
+		})
 		outputSecret.StringData = make(map[string]string)
 		outputSecret.StringData["host"] = clusterConnection.Host
 		outputSecret.StringData["port"] = fmt.Sprintf("%d", clusterConnection.Port)
