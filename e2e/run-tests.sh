@@ -22,6 +22,11 @@ fi
 
 # TODO: need to trap signals to cleanup locally in bad test cases.
 echo
-echo "Cleanup"
+echo "Destroy the resource"
 echo
 kubectl delete -f e2e-pg16-gen-db-same-namespace.yaml
+
+echo
+echo "Verify the secret has been destroy"
+echo
+until kubectl --namespace e2e-pg16 get secrets |grep database-sample; do sleep 5 ; done
