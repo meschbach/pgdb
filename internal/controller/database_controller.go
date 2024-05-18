@@ -121,6 +121,25 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, err
 			}
 		}
+		//Do we have a secret?
+		if db.Status.DatabaseSecretName != nil {
+			secret := &v1.Secret{}
+			if err := r.Get(ctx, types.NamespacedName{Namespace: db.Namespace, Name: *db.Status.DatabaseSecretName}, secret); err != nil {
+				reconcilerLog.Error(err, "failed to get secret, re-enqueuing")
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: 10 * time.Second,
+				}, err
+			}
+
+			if err := r.Delete(ctx, secret); err != nil {
+				reconcilerLog.Error(err, "failed to delete secret, re-enqueuing")
+				return ctrl.Result{
+					Requeue:      true,
+					RequeueAfter: 10 * time.Second,
+				}, err
+			}
+		}
 
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
