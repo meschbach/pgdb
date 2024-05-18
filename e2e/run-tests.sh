@@ -9,7 +9,7 @@ kubectl apply -f e2e-pg16-gen-db-same-namespace.yaml
 echo
 echo "Waiting for target secret to be created."
 echo
-kubectl wait --namespace e2e-pg16 --for='jsonpath={.status.ready}=true' pgdb.storage.meschbach.com/database
+kubectl wait --namespace e2e-pg16 --for='jsonpath={.status.ready}=true' database.pgdb.storage.meschbach.com/database-sample
 echo
 echo "Waiting new secret to be populated, then verify"
 echo
