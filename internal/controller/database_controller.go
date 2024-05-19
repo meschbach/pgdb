@@ -109,19 +109,23 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if db.Status.DatabaseSecretName != nil {
 			secret := &v1.Secret{}
 			if err := r.Get(ctx, types.NamespacedName{Namespace: db.Namespace, Name: *db.Status.DatabaseSecretName}, secret); err != nil {
-				reconcilerLog.Error(err, "failed to get secret, re-enqueuing")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: 10 * time.Second,
-				}, err
-			}
-
-			if err := r.Delete(ctx, secret); err != nil {
-				reconcilerLog.Error(err, "failed to delete secret, re-enqueuing")
-				return ctrl.Result{
-					Requeue:      true,
-					RequeueAfter: 10 * time.Second,
-				}, err
+				if errors.IsNotFound(err) {
+					reconcilerLog.Info("secret was reported as not found, assuming deleted or not created.")
+				} else {
+					reconcilerLog.Error(err, "failed to get secret, re-enqueuing")
+					return ctrl.Result{
+						Requeue:      true,
+						RequeueAfter: 10 * time.Second,
+					}, err
+				}
+			} else {
+				if err := r.Delete(ctx, secret); err != nil {
+					reconcilerLog.Error(err, "failed to delete secret, re-enqueuing")
+					return ctrl.Result{
+						Requeue:      true,
+						RequeueAfter: 10 * time.Second,
+					}, err
+				}
 			}
 		}
 
@@ -246,7 +250,7 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcilerLog.Error(err, "unable to update Database status")
 		}
 
-		reconcilerLog.Error(err, "failed to ensure database %s was created with role.  Retrying after delay", databaseName)
+		reconcilerLog.Error(err, "failed to ensure database %s was created with role.  Retrying after delay", "database.name", databaseName)
 		return ctrl.Result{
 			Requeue:      true,
 			RequeueAfter: 30 * time.Second,
@@ -276,6 +280,12 @@ func (r *DatabaseReconciler) deleteExternalResources(ctx context.Context, reconc
 		Namespace: db.Spec.ClusterNamespace,
 		Name:      db.Spec.ClusterSecret,
 	}, clusterCredentials); clusterCredentialsError != nil {
+		if errors.IsNotFound(clusterCredentialsError) {
+			if db.Status.State == pgdbv1alpha1.MissingClusterSecret || (db.Status.ClusterSecretValid != nil && !*db.Status.ClusterSecretValid) {
+				reconcilerLogger.Info("Cluster secret was missing, assuming cluster never existed or no longer does")
+				return nil
+			}
+		}
 		return errors2.Join(errors2.New("unable to access cluster secret"), clusterCredentialsError)
 	}
 
