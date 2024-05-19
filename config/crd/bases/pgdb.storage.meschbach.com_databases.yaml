@@ -15,8 +15,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.controller
+      name: Controller
+      type: string
     - jsonPath: .status.state
       name: Status
+      type: string
+    - jsonPath: .status.ready
+      name: Ready
       type: string
     name: v1alpha1
     schema:

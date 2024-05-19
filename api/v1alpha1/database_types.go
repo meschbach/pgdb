@@ -78,7 +78,9 @@ type DatabaseStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Controller",type=string,JSONPath=`.spec.controller`
 //+kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.state`
+//+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Database is the Schema for the databases API
 type Database struct {

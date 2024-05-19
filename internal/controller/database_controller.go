@@ -253,6 +253,7 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}, err
 	}
 	db.Status.Connected = yes
+	db.Status.State = pgdbv1alpha1.Ready
 	db.Status.Ready = true
 	if err := r.Status().Update(ctx, db); err != nil {
 		reconcilerLog.Error(err, "unable to update Database status")
