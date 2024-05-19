@@ -51,7 +51,7 @@ type DatabaseSpec struct {
 	AllowPasswordSpecials bool `json:"allowPasswordSpecials"`
 }
 
-func (d DatabaseSpec) MatchesController(controllerName string) bool {
+func (d *DatabaseSpec) MatchesController(controllerName string) bool {
 	if d.Controller == "" {
 		d.Controller = "default"
 	}
