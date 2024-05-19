@@ -29,4 +29,12 @@ kubectl delete -f e2e-pg16-gen-db-same-namespace.yaml
 echo
 echo "Verify the secret has been destroy"
 echo
-until kubectl --namespace e2e-pg16 get secrets |grep database-sample; do sleep 5 ; done
+while true ; do
+  echo "Working..."
+  result=$(kubectl --namespace e2e-pg16 get secrets |grep database-sample) # -n shows line number
+  if [ -z "$result" ] ; then
+    echo "verified secret destroyed"
+    break
+  fi
+  sleep 2
+done
