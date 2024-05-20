@@ -25,9 +25,17 @@ else
   echo "--------------------"
   kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
   echo "--------------------"
+  echo "Postgres service"
+  echo "--------------------"
+  kubectl --namespace e2e-pg16 get svc pg16 -o yaml
+  echo "--------------------"
+  echo "Postgres endpoints"
+  echo "--------------------"
+  kubectl --namespace e2e-pg16 get endpointslices -o yaml
+  echo "--------------------"
   echo "Controller Log"
   echo "--------------------"
-  kubectl logs --namespace pgdb-system -l control-plane=controller-manager
+  kubectl logs --namespace pgdb-system --selector control-plane=controller-manager --lines -1
   exit -1
 fi
 set -e
