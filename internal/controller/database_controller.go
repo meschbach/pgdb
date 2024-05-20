@@ -246,15 +246,18 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	db.Status.DatabaseName = databaseName
 
 	if err := pgstate.EnsureDatabase(ctx, clusterConnection, databaseName, databaseRolePassword); err != nil {
+		db.Status.Ready = false
+		db.Status.Connected = no
+		db.Status.State = pgdbv1alpha1.ClusterConnectionFailure
 		if err := r.Status().Update(ctx, db); err != nil {
 			reconcilerLog.Error(err, "unable to update Database status")
 		}
 
-		reconcilerLog.Error(err, "failed to ensure database %s was created with role.  Retrying after delay", "database.name", databaseName)
+		reconcilerLog.Error(err, "Error in ensuring database connection succeeded", "database.name", databaseName, "database.host", clusterConnection.Host)
 		return ctrl.Result{
 			Requeue:      true,
-			RequeueAfter: 30 * time.Second,
-		}, err
+			RequeueAfter: 10 * time.Second,
+		}, nil
 	}
 	db.Status.Connected = yes
 	db.Status.State = pgdbv1alpha1.Ready
