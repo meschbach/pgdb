@@ -205,7 +205,11 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, err
+			reconcilerLog.Error(err, "Unexpected error while attempting to retrieve output secret.  Retrying")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: 1 * time.Second,
+			}, nil
 		}
 		reconcilerLog.Info("Output secret does not exist, generating")
 		databaseName = req.Namespace + "-" + req.Name
