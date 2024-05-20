@@ -17,8 +17,17 @@ if [ -z $? ]; then
   echo "Database ready."
   kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
 else
+  set +x
+  echo "========================================"
   echo "Timed wait on database readiness failed"
+  echo "========================================"
+  echo "Database CRD"
+  echo "--------------------"
   kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
+  echo "--------------------"
+  echo "Controller Log"
+  echo "--------------------"
+  kubectl logs --namespace pgdb-system -l control-plane=controller-manager
   exit -1
 fi
 set -e
