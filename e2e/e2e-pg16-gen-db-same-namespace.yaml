@@ -4,7 +4,6 @@ metadata:
   name: database-sample
   namespace: e2e-pg16
 spec:
-  controller: "prod"
   clusterNamespace: "e2e-pg16"
   clusterSecret: "e2e-pg16-secret"
   databaseSecret: "database-sample"

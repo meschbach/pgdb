@@ -25,6 +25,7 @@ import (
 	"github.com/meschbach/pgstate"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strconv"
@@ -41,6 +42,11 @@ import (
 const (
 	finalizer = "pgdb.storage.meschbach.com/finalizer"
 )
+
+var trueVar = true
+var yes = &trueVar
+var falseVar = false
+var no = &falseVar
 
 // DatabaseReconciler reconciles a Database object
 type DatabaseReconciler struct {
@@ -77,6 +83,7 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 	}
+	db.Status.Ready = false
 
 	if !db.Spec.MatchesController(r.ControllerName) {
 		return ctrl.Result{}, nil
@@ -97,6 +104,31 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else {
 		reconcilerLog.Info("Deleting")
+
+		//Do we have a secret?
+		if db.Status.DatabaseSecretName != nil {
+			secret := &v1.Secret{}
+			if err := r.Get(ctx, types.NamespacedName{Namespace: db.Namespace, Name: *db.Status.DatabaseSecretName}, secret); err != nil {
+				if errors.IsNotFound(err) {
+					reconcilerLog.Info("secret was reported as not found, assuming deleted or not created.")
+				} else {
+					reconcilerLog.Error(err, "failed to get secret, re-enqueuing")
+					return ctrl.Result{
+						Requeue:      true,
+						RequeueAfter: 10 * time.Second,
+					}, err
+				}
+			} else {
+				if err := r.Delete(ctx, secret); err != nil {
+					reconcilerLog.Error(err, "failed to delete secret, re-enqueuing")
+					return ctrl.Result{
+						Requeue:      true,
+						RequeueAfter: 10 * time.Second,
+					}, err
+				}
+			}
+		}
+
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(db, finalizerName) {
 			reconcilerLog.Info("Finalizing")
@@ -143,24 +175,41 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	clusterConnection, err := connectionConfigFromSecret(secret)
 	if err != nil {
-		return ctrl.Result{}, errors2.Join(errors2.New("failed to read cluster connection"), err)
+		resultingError := errors2.Join(errors2.New("failed to read cluster connection"), err)
+		reconcilerLog.Error(resultingError, "Could not make sense of cluster configuration")
+		db.Status.ClusterSecretValid = no
+		if err := r.Status().Update(ctx, db); err != nil {
+			reconcilerLog.Error(err, "unable to update Database status")
+		}
+		return ctrl.Result{}, resultingError
 	}
+	db.Status.ClusterSecretValid = yes
 
 	var databaseName, databaseRolePassword string
 	outputSecret := &v1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: db.Spec.DatabaseSecret}, outputSecret); err == nil {
 		reconcilerLog.Info("Output secret exists, pulling expected configuration")
+		db.Status.DatabaseSecretName = &db.Spec.DatabaseSecret
+
 		var dbErr, passwordErr error
 		databaseName, dbErr = internalizeSecretElement(outputSecret, "database")
 		databaseRolePassword, passwordErr = internalizeSecretElement(outputSecret, "password")
 		joined := errors2.Join(passwordErr, dbErr)
 		if joined != nil {
+			if err := r.Status().Update(ctx, db); err != nil {
+				reconcilerLog.Error(err, "unable to update Database status")
+			}
+			//todo: perhaps it is better to treat this as a destroy then recreate
 			reconcilerLog.Error(joined, "failed to extract user, database, and password from existing secret.")
 			return ctrl.Result{}, joined
 		}
 	} else {
 		if !errors.IsNotFound(err) {
-			return ctrl.Result{}, err
+			reconcilerLog.Error(err, "Unexpected error while attempting to retrieve output secret.  Retrying")
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: 1 * time.Second,
+			}, nil
 		}
 		reconcilerLog.Info("Output secret does not exist, generating")
 		databaseName = req.Namespace + "-" + req.Name
@@ -171,6 +220,15 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		outputSecret.Namespace = db.Namespace
 		outputSecret.Name = db.Spec.DatabaseSecret
+		outputSecret.ObjectMeta.SetOwnerReferences([]v12.OwnerReference{
+			{
+				APIVersion:         db.APIVersion,
+				Kind:               db.Kind,
+				Name:               db.Name,
+				UID:                db.UID,
+				BlockOwnerDeletion: yes,
+			},
+		})
 		outputSecret.StringData = make(map[string]string)
 		outputSecret.StringData["host"] = clusterConnection.Host
 		outputSecret.StringData["port"] = fmt.Sprintf("%d", clusterConnection.Port)
@@ -181,16 +239,42 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		//todo: this could happen.  retrying for now until we get more info
 		if err := r.Create(ctx, outputSecret); err != nil {
 			if errors.IsAlreadyExists(err) {
-				return ctrl.Result{
-					Requeue: true,
-				}, nil
+				reconcilerLog.Info("Target database secret created after initially missing, retrying", "problem", err.Error())
+			} else {
+				reconcilerLog.Error(err, "Failed to create target database secret, retrying")
 			}
-			return ctrl.Result{}, err
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: 1 * time.Second,
+			}, nil
 		}
+		db.Status.DatabaseSecretName = &outputSecret.Name
 	}
+	db.Status.DatabaseName = databaseName
 
 	if err := pgstate.EnsureDatabase(ctx, clusterConnection, databaseName, databaseRolePassword); err != nil {
-		return ctrl.Result{}, err
+		db.Status.Ready = false
+		db.Status.Connected = no
+		db.Status.State = pgdbv1alpha1.ClusterConnectionFailure
+		if err := r.Status().Update(ctx, db); err != nil {
+			reconcilerLog.Error(err, "unable to update Database status")
+		}
+
+		reconcilerLog.Error(err, "Error in ensuring database connection succeeded", "database.name", databaseName, "database.host", clusterConnection.Host)
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: 10 * time.Second,
+		}, nil
+	}
+	db.Status.Connected = yes
+	db.Status.State = pgdbv1alpha1.Ready
+	db.Status.Ready = true
+	if err := r.Status().Update(ctx, db); err != nil {
+		reconcilerLog.Error(err, "unable to update Database status")
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: 1 * time.Second,
+		}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -210,6 +294,12 @@ func (r *DatabaseReconciler) deleteExternalResources(ctx context.Context, reconc
 		Namespace: db.Spec.ClusterNamespace,
 		Name:      db.Spec.ClusterSecret,
 	}, clusterCredentials); clusterCredentialsError != nil {
+		if errors.IsNotFound(clusterCredentialsError) {
+			if db.Status.State == pgdbv1alpha1.MissingClusterSecret || (db.Status.ClusterSecretValid != nil && !*db.Status.ClusterSecretValid) {
+				reconcilerLogger.Info("Cluster secret was missing, assuming cluster never existed or no longer does")
+				return nil
+			}
+		}
 		return errors2.Join(errors2.New("unable to access cluster secret"), clusterCredentialsError)
 	}
 

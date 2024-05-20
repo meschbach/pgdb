@@ -86,6 +86,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
+	setupLog.Info("Starting database reconciler", "name", controllerName)
 	if err = (&controller.DatabaseReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),

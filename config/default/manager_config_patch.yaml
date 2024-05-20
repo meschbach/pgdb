@@ -10,5 +10,3 @@ spec:
       - name: manager
         args:
         - --leader-elect
-        - --controller-name
-        - "prod"
