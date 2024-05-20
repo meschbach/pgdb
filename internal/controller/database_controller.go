@@ -235,11 +235,14 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		//todo: this could happen.  retrying for now until we get more info
 		if err := r.Create(ctx, outputSecret); err != nil {
 			if errors.IsAlreadyExists(err) {
-				return ctrl.Result{
-					Requeue: true,
-				}, nil
+				reconcilerLog.Info("Target database secret created after initially missing, retrying", "problem", err.Error())
+			} else {
+				reconcilerLog.Error(err, "Failed to create target database secret, retrying")
 			}
-			return ctrl.Result{}, err
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: 1 * time.Second,
+			}, nil
 		}
 		db.Status.DatabaseSecretName = &outputSecret.Name
 	}
