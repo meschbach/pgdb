@@ -13,7 +13,8 @@ echo "Waiting for target secret to be created."
 echo
 set +e
 kubectl wait --namespace e2e-pg16 --for='jsonpath={.status.ready}=true' database.pgdb.storage.meschbach.com/database-sample
-if [ -z $? ]; then
+result=$?
+if [ "$result" = "0" ]; then
   echo "Database ready."
   kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
 else
