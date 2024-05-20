@@ -35,7 +35,7 @@ else
   echo "--------------------"
   echo "Controller Log"
   echo "--------------------"
-  kubectl logs --namespace pgdb-system --selector control-plane=controller-manager --lines -1
+  kubectl logs --namespace pgdb-system --selector control-plane=controller-manager --tail -1
   exit -1
 fi
 set -e
