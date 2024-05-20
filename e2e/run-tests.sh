@@ -62,8 +62,8 @@ echo "Verify the secret has been destroy"
 echo
 while true ; do
   echo "Working..."
-  result=$(kubectl --namespace e2e-pg16 get secrets |grep database-sample) # -n shows line number
-  if [ -z "$result" ] ; then
+  result=$(kubectl --namespace e2e-pg16 get secrets |grep database-sample|wc -l)
+  if [ "$result" = "0" ] ; then
     echo "verified secret destroyed"
     break
   fi
