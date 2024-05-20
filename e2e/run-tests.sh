@@ -5,6 +5,8 @@ echo
 echo "Applying test resources."
 echo
 kubectl apply -f e2e-pg16-gen-db-same-namespace.yaml
+# List the database in the namespace
+kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
 
 echo
 echo "Waiting for target secret to be created."
@@ -12,9 +14,11 @@ echo
 set +e
 kubectl wait --namespace e2e-pg16 --for='jsonpath={.status.ready}=true' database.pgdb.storage.meschbach.com/database-sample
 if [ -z $? ]; then
+  echo "Database ready."
+  kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
 else
   echo "Timed wait on database readiness failed"
-  kubectl get -o json --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
+  kubectl get -o yaml --namespace e2e-pg16 database.pgdb.storage.meschbach.com/database-sample
   exit -1
 fi
 set -e
