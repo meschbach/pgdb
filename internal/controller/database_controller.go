@@ -271,6 +271,10 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	db.Status.Ready = true
 	if err := r.Status().Update(ctx, db); err != nil {
 		reconcilerLog.Error(err, "unable to update Database status")
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: 1 * time.Second,
+		}, nil
 	}
 
 	return ctrl.Result{}, nil
